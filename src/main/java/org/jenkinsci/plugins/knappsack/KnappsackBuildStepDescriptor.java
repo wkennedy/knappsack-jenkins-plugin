@@ -4,6 +4,7 @@ import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Publisher;
+import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import net.sf.json.JSONObject;
@@ -30,7 +31,7 @@ public class KnappsackBuildStepDescriptor extends BuildStepDescriptor<Publisher>
     }
 
     public String getDisplayName() {
-        return "Push to Knappsack";
+        return "Push artifact to Knappsack";
     }
 
     public ListBoxModel doFillApplicationItems(@QueryParameter String userName, @QueryParameter Secret userPassword, @QueryParameter String knappsackURL) {
@@ -44,6 +45,19 @@ public class KnappsackBuildStepDescriptor extends BuildStepDescriptor<Publisher>
             }
         }
         return m;
+    }
+
+    public FormValidation doCheckKnappsackURL(@QueryParameter String userName, @QueryParameter Secret userPassword, @QueryParameter String knappsackURL) {
+        if (!userName.isEmpty() && !userPassword.getEncryptedValue().isEmpty() && !knappsackURL.isEmpty()) {
+            KnappsackAPI knappsackAPI = new KnappsackAPI(knappsackURL, userName, userPassword);
+            try {
+                knappsackAPI.getTokenResponse();
+            } catch (RuntimeException e) {
+                return FormValidation.error(e.getMessage());
+            }
+
+        }
+        return FormValidation.ok();
     }
 }
 

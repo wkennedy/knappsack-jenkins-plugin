@@ -36,7 +36,7 @@ public class KnappsackAPI {
         ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON_TYPE).get(ClientResponse.class);
 
         if (response.getStatus() != 200) {
-            throw new RuntimeException("Failed : HTTP error code : " + response.getStatus());
+            throw new RuntimeException("Failed to connect to " + knappsackURL + " with the given user name and password.  HTTP status: " + response.getStatus());
         }
 
         return response.getEntity(TokenResponse.class);
@@ -55,7 +55,7 @@ public class KnappsackAPI {
         ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON_TYPE).header("Authorization", "Bearer " + token).get(ClientResponse.class);
 
         if (response.getStatus() != 200) {
-            throw new RuntimeException("Failed : HTTP error code : " + response.getStatus());
+            throw new RuntimeException("Failed to retrieve applications from " + knappsackURL + " with the given user name and password.  HTTP status: " + response.getStatus());
         }
 
         return response.getEntity(Application[].class);
