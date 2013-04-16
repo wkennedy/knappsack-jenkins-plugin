@@ -34,10 +34,11 @@ public class KnappsackRecorder extends Recorder {
     private String artifactDirectory;
     private String artifactFile;
     private String application;
+    private String applicationState = "DISABLED";
     private KnappsackAPI knappsackAPI;
 
     @DataBoundConstructor
-    public KnappsackRecorder(String userName, Secret userPassword, String knappsackURL, String artifactDirectory, String artifactFile, String application) {
+    public KnappsackRecorder(String userName, Secret userPassword, String knappsackURL, String artifactDirectory, String artifactFile, String application, String applicationState) {
         this.userName = userName;
         this.userPassword = userPassword;
         if (knappsackURL != null && !knappsackURL.isEmpty()) {
@@ -48,6 +49,7 @@ public class KnappsackRecorder extends Recorder {
         this.artifactDirectory = artifactDirectory;
         this.artifactFile = artifactFile;
         this.application = application;
+        this.applicationState = applicationState;
         this.knappsackAPI = new KnappsackAPI(knappsackURL, userName, userPassword);
     }
 
@@ -140,7 +142,7 @@ public class KnappsackRecorder extends Recorder {
         }
 
         part.field("recentChanges", changeList);
-        part.field("appState", "GROUP_PUBLISH");
+        part.field("appState", applicationState);
 
         FileDataBodyPart fileDataBodyPart = new FileDataBodyPart("installationFile", file, MediaType.APPLICATION_OCTET_STREAM_TYPE);
 

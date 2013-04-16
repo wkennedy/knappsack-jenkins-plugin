@@ -23,4 +23,7 @@
     <f:entry title="Application Select" field="application">
         <f:select />
     </f:entry>
+    <f:entry title="Application State" field="applicationState">
+        <f:select />
+    </f:entry>
 </j:jelly>

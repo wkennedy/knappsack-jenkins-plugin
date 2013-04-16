@@ -47,6 +47,16 @@ public class KnappsackBuildStepDescriptor extends BuildStepDescriptor<Publisher>
         return m;
     }
 
+    public ListBoxModel doFillApplicationStateItems() {
+        ListBoxModel m = new ListBoxModel();
+        m.add("Publish to Group", "GROUP_PUBLISH");
+        m.add("Publish to Organization", "ORGANIZATION_PUBLISH");
+        m.add("Request Publish to Group", "ORG_PUBLISH_REQUEST");
+        m.add("Disabled", "DISABLED");
+
+        return m;
+    }
+
     public FormValidation doCheckKnappsackURL(@QueryParameter String userName, @QueryParameter Secret userPassword, @QueryParameter String knappsackURL) {
         if (!userName.isEmpty() && !userPassword.getEncryptedValue().isEmpty() && !knappsackURL.isEmpty()) {
             KnappsackAPI knappsackAPI = new KnappsackAPI(knappsackURL, userName, userPassword);
