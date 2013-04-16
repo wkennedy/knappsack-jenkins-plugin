@@ -1,4 +1,4 @@
-package org.jenkinsci.plugins.knappsack;
+package org.jenkinsci.plugins.knappsack.models;
 
 public class TokenResponse {
 

@@ -5,26 +5,20 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.api.json.JSONConfiguration;
 import com.sun.jersey.multipart.FormDataMultiPart;
 import com.sun.jersey.multipart.file.FileDataBodyPart;
 import hudson.EnvVars;
-import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Result;
 import hudson.scm.ChangeLogSet;
-import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
-import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.Secret;
-import net.sf.json.JSONObject;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.jenkinsci.plugins.knappsack.models.TokenResponse;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 
 import javax.ws.rs.core.MediaType;
 import java.io.File;
@@ -39,10 +33,11 @@ public class KnappsackRecorder extends Recorder {
     private String knappsackURL;
     private String artifactDirectory;
     private String artifactFile;
-    private String applicationID;
+    private String application;
+    private KnappsackAPI knappsackAPI;
 
     @DataBoundConstructor
-    public KnappsackRecorder(String userName, Secret userPassword, String knappsackURL, String artifactDirectory, String artifactFile, String applicationID) {
+    public KnappsackRecorder(String userName, Secret userPassword, String knappsackURL, String artifactDirectory, String artifactFile, String application) {
         this.userName = userName;
         this.userPassword = userPassword;
         if (knappsackURL != null && !knappsackURL.isEmpty()) {
@@ -52,12 +47,13 @@ public class KnappsackRecorder extends Recorder {
         }
         this.artifactDirectory = artifactDirectory;
         this.artifactFile = artifactFile;
-        this.applicationID = applicationID;
+        this.application = application;
+        this.knappsackAPI = new KnappsackAPI(knappsackURL, userName, userPassword);
     }
 
     @Override
-    public BuildStepDescriptorImpl getDescriptor() {
-        return (BuildStepDescriptorImpl) super.getDescriptor();
+    public KnappsackBuildStepDescriptor getDescriptor() {
+        return (KnappsackBuildStepDescriptor) super.getDescriptor();
     }
 
     public BuildStepMonitor getRequiredMonitorService() {
@@ -76,35 +72,6 @@ public class KnappsackRecorder extends Recorder {
         uploadFile(file, build);
 
         return super.perform(build, launcher, listener);
-    }
-
-    @Extension
-    public static final class BuildStepDescriptorImpl extends BuildStepDescriptor<Publisher> {
-        public BuildStepDescriptorImpl() {
-            super(KnappsackRecorder.class);
-            load();
-        }
-
-        public boolean isApplicable(Class<? extends AbstractProject> aClass) {
-            return true;
-        }
-
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-            req.bindJSON(this, json);
-            save();
-            return true;
-        }
-
-        public String getDisplayName() {
-            return "Push to Knappsack";
-        }
-
-//        TODO Dynamically populate applications
-//        public ListBoxModel doFillApplicationItems() {
-//            ListBoxModel m = new ListBoxModel();
-//            return m;
-//        }
     }
 
     private File findInstallationFile(String artifactDirectory, String artifactFile, String workspace) {
@@ -141,11 +108,11 @@ public class KnappsackRecorder extends Recorder {
     }
 
     private void uploadFile(File file, AbstractBuild<?, ?> build) {
-        TokenResponse tokenResponse = getTokenResponse();
+        TokenResponse tokenResponse = knappsackAPI.getTokenResponse();
         String url = knappsackURL + "/api/v1/applicationVersions";
 
         FormDataMultiPart part = new FormDataMultiPart();
-        part.field("applicationId", applicationID);
+        part.field("applicationId", application);
 
         int buildNumber = build.getNumber();
         int month = build.getTimestamp().get(Calendar.MONTH);
@@ -188,26 +155,10 @@ public class KnappsackRecorder extends Recorder {
                 .type(MediaType.MULTIPART_FORM_DATA_TYPE).header("Authorization", "Bearer " + token)
                 .post(ClientResponse.class, part);
 
+        //TODO handle error more gracefully
         if (response.getStatus() != 200) {
             throw new RuntimeException("Failed : HTTP error code : " + response.getStatus());
         }
-    }
-
-    private TokenResponse getTokenResponse() {
-        String url = knappsackURL + "/oauth/token";
-        url = url + "?client_id=mobile_api_client&client_secret=kzI7QNsbne8KOlS&grant_type=password&username=" + userName + "&password=" + userPassword;
-        ClientConfig clientConfig = new DefaultClientConfig();
-        clientConfig.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
-        Client client = Client.create(clientConfig);
-        WebResource webResource = client.resource(url);
-
-        ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON_TYPE).get(ClientResponse.class);
-
-        if (response.getStatus() != 200) {
-            throw new RuntimeException("Failed : HTTP error code : " + response.getStatus());
-        }
-
-        return response.getEntity(TokenResponse.class);
     }
 
     public String getUserName() {
@@ -230,7 +181,7 @@ public class KnappsackRecorder extends Recorder {
         return artifactFile;
     }
 
-    public String getApplicationID() {
-        return applicationID;
+    public String getApplication() {
+        return application;
     }
 }

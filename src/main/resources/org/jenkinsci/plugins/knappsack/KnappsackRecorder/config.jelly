@@ -20,7 +20,7 @@
     <f:entry title="Artifact File" field="artifactFile">
         <f:textbox />
     </f:entry>
-    <f:entry title="Application ID" field="applicationID">
-        <f:textbox />
+    <f:entry title="Application Select" field="application">
+        <f:select />
     </f:entry>
 </j:jelly>
